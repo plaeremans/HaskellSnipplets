@@ -13,16 +13,13 @@ main = do
      then  putStrLn "You should provide two files" 
      else  
       do 
-        putStrLn "ok"
         let arg1:arg2:_ = args 
-        file1 <- openFile arg1 ReadMode
-        file2 <- openFile arg2 ReadMode
-        set1 <- fileToNumbers file1
-        set2 <- fileToNumbers file2
+        set1 <- fileToNumbers arg1
+        set2 <- fileToNumbers arg2
         mapM (putStrLn . show)  (toList (difference set1 set2))
-        hClose file1
-        hClose file2
-      where fileToNumbers file = readLines file >>= \x -> return $ fromList $ L.map  (read :: String -> Int) x
+      where 
+        fileToNumbers file = readFile file >>= \x -> return $ fromList $ L.map  (read :: String -> Int) (words x)
+
 
 readLines :: Handle -> IO [String]
 readLines handle = do
