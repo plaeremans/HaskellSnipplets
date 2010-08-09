@@ -17,11 +17,6 @@ main = do
         set1 <- fileToNumbers arg1
         set2 <- fileToNumbers arg2
         mapM (putStrLn . show)  (toList (difference set1 set2))
+        return ()
       where 
-        fileToNumbers file = readFile file >>= \x -> return $ fromList $ L.map  (read :: String -> Int) (words x)
-
-
-readLines :: Handle -> IO [String]
-readLines handle = do
-  contents <- hGetContents handle
-  return $ words contents 
+        fileToNumbers file = readFile file >>= return . fromList .  (L.map  (read :: String -> Int)) .  words 
