@@ -3,7 +3,7 @@ module Main where
 import System
 import System.IO
 
-import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy as B
 import Data.Char
 import Data.Set 
 import Codec.Archive.Zip
