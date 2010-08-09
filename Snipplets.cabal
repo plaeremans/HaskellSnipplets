@@ -11,3 +11,7 @@ Cabal-Version:       >=1.2
 Executable compareset
   Main-is:           CompareSets.hs
   Build-Depends:     base > 3,containers,haskell98
+
+Executable ziplist
+  Main-is:           ZipList.hs
+  Build-Depends:     base > 3,containers,haskell98, bytestring,zip-archive
