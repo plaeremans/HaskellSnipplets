@@ -1,0 +1,13 @@
+Name:                snipplets
+Version:             0.1
+Description:         Various little haskell scripts that are useful for me 
+License:             GPL
+License-file:        LICENSE
+Author:              Pieter Laeremans
+Maintainer:          pieter@laeremans.org
+Build-Type:          Simple
+Cabal-Version:       >=1.2
+
+Executable compareset
+  Main-is:           CompareSets.hs
+  Build-Depends:     base > 3,containers,haskell98
