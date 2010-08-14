@@ -23,7 +23,7 @@ main = do
 serverLoop :: ServerData -> Socket -> IO ()
 serverLoop sd socket =   do
                     (handle, _, _) <- accept socket                    
-                    handleRequest  sd handle
+                    forkIO $ handleRequest  sd handle
                     serverLoop sd socket
 
 
@@ -38,7 +38,7 @@ newJob inputFile outputFile  ticket = JobInfo inputFile outputFile ticket InQueu
 initServerData :: IO ServerData 
 initServerData = do 
   gen <- newStdGen 
-  mvm <- newEmptyMVar 
+  mvm <- newMVar empty
   chan <- newChan 
   return $ ServerData  mvm gen chan
   
@@ -86,13 +86,15 @@ batchProcessor sd = do
   jobInfo <- readChan chan
   putStrLn "going to process"
   updateJobStatus mvar jobInfo Busy
-  ph <- runCommand "ls"
+  ph <- runCommand ("sleep 10; cp " ++ (inputFile jobInfo) ++ " " ++ (outputFile jobInfo)) 
   putStrLn "forked process"
   exitCode <- waitForProcess ph
   putStrLn $ "Processed " ++ (show exitCode)
-  case exitCode of 
-    ExitSuccess -> updateJobStatus mvar jobInfo  Processed
-    ExitFailure st  -> updateJobStatus mvar jobInfo $ Failed st
+  let newState = case exitCode of 
+                   ExitSuccess -> Processed
+                   ExitFailure st  -> Failed st
+  updateJobStatus mvar jobInfo  newState
+  batchProcessor sd
   where updateJobStatus mvar jobInfo newStatus = do
                            mp <- takeMVar mvar 
                            putMVar mvar (insert (ticket jobInfo) (jobInfo {status = newStatus })  mp)
