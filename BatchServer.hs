@@ -11,8 +11,7 @@ import Data.Digest.Pure.MD5
 import Random 
 import Data.Map
 import Control.Exception
-import Prelude hiding (catch)
-
+import Prelude hiding (catch, lookup)
 
 main = do  
   socket <- listenOn $ PortNumber 8899 
@@ -26,8 +25,7 @@ serverLoop sd socket =   do
                     forkIO $ handleRequest  sd handle
                     serverLoop sd socket
 
-
-type  Ticket = MD5Digest
+type  Ticket = String
 
 data JobStatus = Processed | InQueue | Busy | Failed Int deriving (Eq, Show)
 data JobInfo = JobInfo {inputFile :: FilePath, outputFile :: FilePath, ticket :: Ticket, status :: JobStatus  }   deriving (Eq, Show)
@@ -46,7 +44,6 @@ initServerData = do
 --randOmFileName :: StdGen -> (String, StdGen)
 randomFileName g = let (r, ng) = next g in (((show r) ++ ".txt"), ng)
 
-
 createJobInfo ticket = do 
   gen <- newStdGen 
   let (inputFileName, ng) = randomFileName gen
@@ -56,21 +53,48 @@ createJobInfo ticket = do
 queueJob :: ServerData -> JobInfo -> IO  ()
 queueJob sd jobInfo = writeChan  (jobQueue sd)  jobInfo
   
+fetchJob :: ServerData -> Ticket -> IO (Maybe JobInfo)
+fetchJob sd ticket = do
+  m <- readMVar (ticket2JobInfo sd)
+  putStrLn  ("ticket " ++ ticket)
+  putStr "jobmap "
+  putStrLn (show m)
+  return $ lookup ticket m
+                     
 handleCommand :: ServerData -> String -> Handle -> IO()
 handleCommand sd "process" handle =   do  
   size <- hGetLine handle
   putStrLn $ size
   cts <- B.hGet handle (read size :: Int) 
-  hClose handle 
+
   let md5cts = md5 cts
-  jobInfo <- createJobInfo md5cts
+  jobInfo <- createJobInfo (show md5cts)
   B.writeFile (inputFile jobInfo) cts
   queueJob sd jobInfo 
+  hPutStrLn handle $ ("Started Job " ++ (ticket jobInfo))
+  hClose handle 
   putStrLn "Finished"  
   putStrLn $ show jobInfo
   return ()
 
-handleCommand sd "fetchResult" handle = return ()
+handleCommand sd "fetchResult" handle = do
+  ticket <- hGetLine handle
+  jobInfo <- fetchJob sd ticket
+  case jobInfo of
+    Nothing -> (hClose handle)
+    Just ji -> do   
+      case (status ji) of 
+        Processed -> do
+                 hPutStrLn handle "Processed"
+                 cts <- B.readFile (outputFile ji)
+                 B.hPut handle cts
+                 hClose handle
+
+        otherStatus -> do     
+                 hPutStrLn handle (show otherStatus)
+                 hClose handle
+                 return ()
+
 handleCommand sd "queryBusy" handle = return ()  
 handleCommand sd "delete" handle = return ()
 
